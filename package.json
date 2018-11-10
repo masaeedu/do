@@ -1,0 +1,17 @@
+{
+  "name": "@masaeedu/do",
+  "version": "0.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "repository": "git@github.com:masaeedu/do",
+  "author": "Asad Saeeduddin <masaeedu@gmail.com>",
+  "devDependencies": {
+    "ava": "^0.25.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "ava"
+  }
+}
