@@ -1,41 +1,44 @@
-const mdo = M => (computation, context = {}) => {
-  let vars = [];
-  const varFactory = new Proxy(
-    {},
-    {
-      get: (_, v) => {
-        if (context.hasOwnProperty(v)) return context[v];
+const echo = new Proxy(
+  {},
+  {
+    get: (_, v) => v
+  }
+);
 
-        vars.push(v);
-        return v;
-      },
-    },
-  );
+const _ = Symbol();
+const varname = s => (typeof s === "function" ? _ : s[0]);
+const step = s => (typeof s === "function" ? s : s[1]);
 
-  const steps = computation(varFactory);
-  if (steps.length === 0) {
+const validate = vars => {
+  const n = vars.length;
+
+  // Empty do blocks make no sense
+  if (n === 0) {
     throw "Computation in do block cannot be empty";
   }
 
-  // Get the next step
-  const next = steps[0];
-
-  if (steps.length === 1) {
-    if (typeof next === "function") {
-      return next();
-    }
-
+  // Last step in a do block must be an expression
+  // and not an assignment
+  if (vars[n - 1] !== _) {
     throw "Last step in a do block must be an expression and not an assignment";
   }
+};
 
-  const remaining = vars => computation(vars).slice(1);
+const mdo = M => computation => {
+  const vars = computation(echo).map(varname);
 
-  if (typeof next === "function") {
-    return M.chain(_ => mdo(M)(remaining, context))(next());
-  }
+  const rec = ({ i, ctx }) => {
+    const v = vars[i];
+    const m = step(computation(ctx)[i]);
 
-  const [v, m] = next;
-  return M.chain(x => mdo(M)(remaining, { ...context, [v]: x }))(m());
+    // If this is the last step, evaluate and return it
+    if (i === vars.length - 1) return m();
+
+    const proceed = x => rec({ i: i + 1, ctx: { ...ctx, [v]: x } });
+    return M.chain(proceed)(m());
+  };
+
+  return rec({ i: 0, ctx: {} });
 };
 
 module.exports = { mdo };
